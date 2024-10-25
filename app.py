@@ -26,6 +26,16 @@ def predict(request: InferenceRequest):
     model_version = "latest"
     model_uri = f"models:/{model_name}/{model_version}"
     model = mlflow.sklearn.load_model(model_uri)
+
+    # Get the model type and load it with the proper function
+    model = mlflow.pyfunc.load_model(model_uri)
+    model_type = model.metadata.flavors.keys()
+
+    if 'sklearn' in model_type:
+        model = mlflow.sklearn.load_model(model_uri)
+    else:
+        return {"error": "Model type not supported"}
+
     X_new = np.array(request.inputs)
     y_pred_new = model.predict(X_new)
     return {"predictions": y_pred_new.tolist()}
