@@ -3,16 +3,13 @@ from pydantic import BaseModel
 import mlflow
 import mlflow.sklearn
 import numpy as np
+import os
 
 # MLflow configuration
 mlflow_tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 mlflow.set_tracking_uri(mlflow_tracking_uri)
-model_name = "sk-learn-random-forest-reg-model"
-model_version = "latest"
-
-# Load the model
-model_uri = f"models:/{model_name}/{model_version}"
-model = mlflow.sklearn.load_model(model_uri)
+# Create the MLflow client
+client = mlflow.tracking.MlflowClient()
 
 # Create the FastAPI app
 app = FastAPI()
@@ -24,6 +21,11 @@ class InferenceRequest(BaseModel):
 # Inference endpoint
 @app.post("/predict")
 def predict(request: InferenceRequest):
+    # Load the model
+    model_name = "sk-learn-random-forest-reg-model"
+    model_version = "latest"
+    model_uri = f"models:/{model_name}/{model_version}"
+    model = mlflow.sklearn.load_model(model_uri)
     X_new = np.array(request.inputs)
     y_pred_new = model.predict(X_new)
     return {"predictions": y_pred_new.tolist()}
@@ -31,7 +33,6 @@ def predict(request: InferenceRequest):
 # Endpoint to list the available models
 @app.get("/list-models")
 def list_models():
-    client = mlflow.tracking.MlflowClient()
     models = client.search_registered_models()
 
     # Create a list with models' information
